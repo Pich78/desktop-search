@@ -21,6 +21,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
+import java.util.TimerTask;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.*;
@@ -59,8 +60,12 @@ public class PopupMenuListener extends MouseAdapter implements ListSelectionList
         SwingUtils.registerKeyBoardAction(parent, actions[0]);//ViewAction
     }
 
+    private int eventCnt = 0;
+
     @Override
     public void mouseClicked(MouseEvent e) {
+
+        java.util.Timer timer = new java.util.Timer("doubleClickTimer", false);
         //user want see popup menu
         if (SwingUtilities.isRightMouseButton(e)) {
             if (popup == null) {
@@ -84,6 +89,29 @@ public class PopupMenuListener extends MouseAdapter implements ListSelectionList
                 actions[0].setEnabled(parent instanceof ResultView);
             }
             popup.show(e.getComponent(), e.getX(), e.getY());
+        } else {
+            eventCnt = e.getClickCount();
+            if ( e.getClickCount() == 1 ) {
+                timer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        if (eventCnt == 1) {
+                            System.err.println("You did a single click.");
+                        } else if (eventCnt > 1) {
+                            System.err.println("you clicked " + eventCnt + " times.");
+                            if (docIDs.length > 0) {
+                                Document doc = documents.get(docIDs[0]);
+                                try {
+                                    Desktop.getDesktop().open(new File(doc.get(FileNameField.NAME)));
+                                } catch (IOException ex) {
+                                    log.log(Level.SEVERE, "can not open external application!", ex);
+                                }
+                            }
+                        }
+                        eventCnt = 0;
+                    }
+                }, 400);
+            }
         }
         //selected event come before clicked
         if (SwingUtilities.isLeftMouseButton(e) && e.getClickCount() > 1) {
